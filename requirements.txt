@@ -1,0 +1,4 @@
+keyring
+requests
+rich
+rich-argparse
