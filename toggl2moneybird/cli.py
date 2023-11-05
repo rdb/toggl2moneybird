@@ -19,6 +19,7 @@ def main():
     console = Console()
 
     cmd_choices = [name[4:] for name in dir(commands) if name.startswith('cmd_')]
+    cmd_choices.append('help')
 
     parser = ArgumentParser(prog='toggl2moneybird', description='Synchronizes Toggl Track time entries with a Moneybird administration', formatter_class=RichHelpFormatter)
     parser.add_argument('command', choices=cmd_choices, default='sync')
@@ -26,6 +27,10 @@ def main():
     parser.add_argument('-y', action='store_true', dest='yes', help="Do not ask for confirmation")
     parser.add_argument('--project', action='append', metavar='"Project Name"', dest='projects', help="Limit to the given project (may be repeated)")
     args = parser.parse_args()
+
+    if args.command == 'help':
+        parser.print_help()
+        return
 
     logname = getpass.getuser()
     mb_creds = mb.Credentials.from_keyring(keyring, logname)
