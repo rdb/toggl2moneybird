@@ -4,6 +4,8 @@ __all__ = ()
 
 from .cli import main
 
+from rich.console import Console
+
 try:
     main()
 except Exception:
