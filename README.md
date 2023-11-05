@@ -3,6 +3,8 @@
 A user-friendly command-line tool for synchronizing time entries from
 [Toggl Track](https://toggl.com/track/) to [Moneybird](https://www.moneybird.com/).
 
+<img width="426" alt="image" src="https://github.com/rdb/toggl2moneybird/assets/194842/12f05a72-c536-4c75-9aff-658439cc267d">
+
 ## Installation
 
     pip install toggl2moneybird
