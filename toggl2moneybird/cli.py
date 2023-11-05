@@ -24,6 +24,7 @@ def main():
     parser.add_argument('command', choices=cmd_choices, default='sync')
     parser.add_argument('-n', action='store_true', dest='dry_run', help="Does not perform any mutations")
     parser.add_argument('-y', action='store_true', dest='yes', help="Do not ask for confirmation")
+    parser.add_argument('--project', action='append', metavar='"Project Name"', dest='projects', help="Limit to the given project (may be repeated)")
     args = parser.parse_args()
 
     logname = getpass.getuser()

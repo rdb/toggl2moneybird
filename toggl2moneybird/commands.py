@@ -281,7 +281,9 @@ def cmd_sync(console, args, mb_admin):
 
     sync = EntrySync()
     for tt_entry in tt_entries:
-        sync.add_tt_entry(tt_entry, tt.get_project(tt_entry['project_id']))
+        tt_project = tt.get_project(tt_entry['project_id'])
+        if not args.projects or tt_project['name'] in args.projects:
+            sync.add_tt_entry(tt_entry, tt_project)
 
     with Progress(console=console, transient=True) as progress:
         mb_entries = mb_admin.get_time_entries(start_date, end_date, progress=progress)
@@ -297,12 +299,19 @@ def cmd_sync(console, args, mb_admin):
 
     if sync.has_missing_billable_projects():
         mb_projects = mb_admin.get_projects()
+
+        if args.projects:
+            mb_projects = [mb_project for mb_project in mb_projects if mb_project.name in args.projects]
+
         for tt_project in sync.map_projects_by_name(mb_projects):
             if Confirm.ask(f"Add missing project [bold blue]{tt_project['name']}[/bold blue]?"):
                 mb_project = mb_admin.create_project(tt_project['name'])
                 sync.map_project(tt_project['id'], mb_project)
 
     for mb_project in sync.get_billable_projects_without_contacts():
+        if args.projects and mb_project.name not in args.projects:
+            continue
+
         mb_contact = Menu.ask(f"Bill project {mb_project.__rich__()} to", mb_admin.get_contacts())
         if mb_contact:
             sync.set_project_contact(mb_project, mb_contact)
@@ -335,10 +344,20 @@ def cmd_invoice(console, args, mb_admin):
 
     sync = EntrySync()
     for tt_entry in tt_entries:
-        sync.add_tt_entry(tt_entry, tt.get_project(tt_entry['project_id']))
+        tt_project = tt.get_project(tt_entry['project_id'])
+        if not args.projects or tt_project['name'] in args.projects:
+            sync.add_tt_entry(tt_entry, tt_project)
 
     sync.link(entries)
-    sync.map_projects_by_name(mb_admin.get_projects())
+
+    if sync.has_missing_billable_projects():
+        mb_projects = mb_admin.get_projects()
+
+        if args.projects:
+            mb_projects = [mb_project for mb_project in mb_projects if mb_project.name in args.projects]
+
+        sync.map_projects_by_name(mb_projects)
+
     mutations = sync.get_mutations(mb_admin.get_users()[0])
 
     if len(mutations) > 0 and Confirm.ask(f"{len(mutations)} entries are out of sync. Sync first?"):
@@ -347,9 +366,13 @@ def cmd_invoice(console, args, mb_admin):
 
     with Progress(console=console, transient=True) as progress:
         entries = mb_admin.get_time_entries(state='open', progress=progress)
-        entries.sort()
+
+    if args.projects:
+        entries = entries.filter(lambda entry: entry.project and entry.project.name in args.projects)
 
     if entries:
+        entries.sort()
+
         rate_by_project = {}
         currency_by_project = {}
         for tt_project in tt.get_projects():
