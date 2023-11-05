@@ -53,12 +53,12 @@ class Menu:
         if self.default and have_getch:
             for i, (cells, value) in enumerate(rows):
                 if value == self.default:
-                    default_i = i
                     break
             else:
                 i = -1 if self.filter else 0
         else:
             i = -1 if self.filter else 0
+        default_i = i
 
         with Live(None, console=self.console, auto_refresh=False, transient=True) as live:
             while True:
