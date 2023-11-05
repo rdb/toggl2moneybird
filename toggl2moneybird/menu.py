@@ -1,5 +1,7 @@
 __all__ = 'Menu',
 
+import os
+
 from rich.live import Live
 from rich.table import Table
 from rich.console import Group, Console
@@ -9,22 +11,23 @@ from rich.prompt import Prompt
 
 have_getch = True
 
-try:
-    import sys
+if not have_getch:
+    pass
+elif os.name == 'nt':
+    from msvcrt import getwch
+else:
     import tty
     import termios
-except ImportError:
-    have_getch = False
+    import sys
 
-
-def getch():
-    fd = sys.stdin.fileno()
-    old_settings = termios.tcgetattr(fd)
-    try:
-        tty.setraw(fd)
-        return sys.stdin.read(1)
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    def getwch():
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            return sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 
 class Menu:
@@ -88,7 +91,7 @@ class Menu:
                     group = Group(filter_text, table)
                     live.update(group, refresh=True)
 
-                    c = getch()
+                    c = getwch()
                     if c == '\b' or c == '\x7f':
                         if q:
                             q = q[:-1]
@@ -102,10 +105,10 @@ class Menu:
                         i += 1
                         if i >= len(rows):
                             i = 0
-                    elif c == '\x1b':  # ESC
-                        c = getch()
+                    elif c == '\x1b':  # ESC, Unix
+                        c = getwch()
                         if c == '[':
-                            c = getch()
+                            c = getwch()
                             if c == 'A' or c == 'Z':  # up or back-tab
                                 i -= 1
                                 if i < 0:
@@ -115,6 +118,29 @@ class Menu:
                                 if i >= len(rows):
                                     i = 0
                         continue
+                    elif (c == '\x00' or c == '\xe0') and os.name == 'nt':  # ESC, Windows
+                        # We can't detect a genuine a-with-grave-accent here,
+                        # but if we see that the second character was something
+                        # unlikely to be a scancode we'll retroactively input
+                        # this as two characters.
+                        #FIXME: doesn't handle case if next char is a control
+                        # character correctly yet.
+                        next_c = getwch()
+                        if next_c == 'H':  # up
+                            i -= 1
+                            if i < 0:
+                                i = len(rows) - 1
+                            continue
+                        elif next_c == 'P':  # down
+                            i += 1
+                            if i >= len(rows):
+                                i = 0
+                            continue
+                        elif c == '\xe0' and ((ord(next_c) >= 0x20 and ord(next_c) <= 0x39) or ord(next_c) >= 0x61):
+                            q += c
+                            i = -1
+                        else:
+                            continue
                     elif c.isprintable() and self.filter:
                         q += c
                         i = -1
