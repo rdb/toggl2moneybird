@@ -27,6 +27,7 @@ class EntrySync:
         self.__project_map: dict[int, mb.Project] = {}
         self.__missing_projects: dict[int, dict] = {}
         self.__mb_project_contact_map: dict[mb.Project, mb.Contact] = {}
+        self.__mb_redundant_entries = set()
 
     def add_tt_entry(self, tt_entry, tt_project):
         # Must be called in chronological order.
@@ -61,8 +62,7 @@ class EntrySync:
         entry.stop = tt_parse_timestamp(tt_entry['stop'])
 
     def link(self, mb_entries):
-        """Links up the SyncEntries with the given list of Moneybird entries.
-        Returns a new list of unused Moneybird entries."""
+        "Links up the SyncEntries with the given list of Moneybird entries."
 
         # Create mappings from project -> contact and timestamp -> entry.
         mb_existing_entries_by_time = {}
@@ -75,7 +75,7 @@ class EntrySync:
                 mb_existing_entries_by_time[key] = mb_entry
             else:
                 # It's an apparent duplicate.
-                mb_redundant_entries.append(mb_entry)
+                self.__mb_redundant_entries.add(mb_entry)
 
         # Assign based on existing entries in moneybird.
         for entry in self.entries:
@@ -110,9 +110,7 @@ class EntrySync:
 
         # Leftover entries are redundant.
         for mb_entry in mb_existing_entries_by_time.values():
-            mb_redundant_entries.append(mb_entry)
-
-        return mb_redundant_entries
+            self.__mb_redundant_entries.add(mb_entry)
 
     def get_project_by_tt_id(self, tt_project_id):
         return self.__project_map.get(tt_project_id)
@@ -171,7 +169,7 @@ class EntrySync:
                         yield mb_project
                         break
 
-    def get_new_updated_entries(self, mb_user):
+    def get_mutations(self, mb_user):
         mutations = []
 
         for entry in self.entries:
@@ -200,5 +198,14 @@ class EntrySync:
                     mutations.append((entry.mb_entry, diff))
             else:
                 mutations.append((None, data))
+
+        if self.__mb_redundant_entries:
+            # Delete redundant entries if they don't occur in a known project
+            mb_projects = set(self.__project_map.values())
+            mb_projects.discard(None)
+
+            for mb_entry in self.__mb_redundant_entries:
+                if mb_entry.project in mb_projects:
+                    mutations.append((mb_entry, None))
 
         return mutations

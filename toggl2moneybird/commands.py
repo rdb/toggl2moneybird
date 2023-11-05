@@ -168,43 +168,54 @@ def mb_entry_data_table(entries_data, mb_admin, **kwargs):
     return table
 
 
-def do_mutations(console, args, mb_admin, mutations, mb_del_entries):
+def do_mutations(console, args, mb_admin, mutations):
+    num_create = 0
+    num_update = 0
+    num_delete = 0
     num_locked = 0
-
     orig_mutations = mutations
     mutations = []
     for mb_entry, data in orig_mutations:
         if mb_entry and mb_entry.detail is not None:
             num_locked += 1
-        else:
-            mutations.append((mb_entry, data))
+            continue
 
-    orig_mb_del_entries = mb_del_entries
-    mb_del_entries = []
-    for mb_entry in orig_mb_del_entries:
-        if mb_entry.detail is not None:
-            num_locked += 1
+        mutations.append((mb_entry, data))
+
+        if not mb_entry:
+            num_create += 1
+        elif data is not None:
+            num_update += 1
         else:
-            mb_del_entries.append(mb_entry)
+            num_delete += 1
 
     if num_locked:
         console.print("[bold red]WARNING![/bold red]", num_locked, "entries cannot be modified because they were already invoiced.")
 
-    if mb_del_entries:
-        if mutations:
-            console.print(len(mutations), "entries to be added or updated,",
-                          len(mb_del_entries), "entries to be [bold red]DELETED[/bold red]:")
-        else:
-            console.print(len(mb_del_entries), "entries to be [bold red]DELETED[/bold red]:")
-    elif mutations:
-        console.print(len(mutations), "entries to be added or updated:")
-    else:
+    if not mutations:
         console.print("Nothing to do!")
         return True
 
-    for mb_entry in mb_del_entries:
-        if mb_entry.detail is None:
-            mutations.append((mb_entry, None))
+    line = []
+    if num_create:
+        line += [num_create, "entry" if num_create == 1 else "entries", "to be created"]
+
+    if num_update:
+        if line:
+            line[-1] += ","
+            line += [num_update, "to be updated"]
+        else:
+            line += [num_update, "entry" if num_update == 1 else "entries", "to be updated"]
+
+    if num_delete:
+        if line:
+            line[-1] += ","
+            line += [num_delete, "to be [bold red]DELETED[/bold red]"]
+        else:
+            line += [num_delete, "entry" if num_delete == 1 else "entries", "to be [bold red]DELETED[/bold red]"]
+
+    line[-1] += ":"
+    console.print(*line)
 
     console.print(mb_entry_data_table(mutations, mb_admin))
 
@@ -282,7 +293,7 @@ def cmd_sync(console, args, mb_admin):
     else:
         mb_user = Menu.ask("Log time as user", mb_users)
 
-    mb_del_entries = sync.link(mb_entries)
+    sync.link(mb_entries)
 
     if sync.has_missing_billable_projects():
         mb_projects = mb_admin.get_projects()
@@ -296,8 +307,8 @@ def cmd_sync(console, args, mb_admin):
         if mb_contact:
             sync.set_project_contact(mb_project, mb_contact)
 
-    mutations = sync.get_new_updated_entries(mb_user)
-    do_mutations(console, args, mb_admin, mutations, mb_del_entries)
+    mutations = sync.get_mutations(mb_user)
+    do_mutations(console, args, mb_admin, mutations)
 
 
 def cmd_invoice(console, args, mb_admin):
@@ -326,13 +337,12 @@ def cmd_invoice(console, args, mb_admin):
     for tt_entry in tt_entries:
         sync.add_tt_entry(tt_entry, tt.get_project(tt_entry['project_id']))
 
-    mb_del_entries = sync.link(entries)
+    sync.link(entries)
     sync.map_projects_by_name(mb_admin.get_projects())
-    mutations = sync.get_new_updated_entries(mb_admin.get_users()[0])
-    num_out_of_sync = len(mutations) + len(mb_del_entries)
+    mutations = sync.get_mutations(mb_admin.get_users()[0])
 
-    if num_out_of_sync > 0 and Confirm.ask(f"{num_out_of_sync} entries are out of sync. Sync first?"):
-        if not do_mutations(console, args, mb_admin, mutations, mb_del_entries):
+    if len(mutations) > 0 and Confirm.ask(f"{len(mutations)} entries are out of sync. Sync first?"):
+        if not do_mutations(console, args, mb_admin, mutations):
             return
 
     with Progress(console=console, transient=True) as progress:
