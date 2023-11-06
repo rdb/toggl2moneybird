@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=66.1", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "toggl2moneybird"
+version = "0.0.1"
+authors = [
+    {name = "rdb", email = "me@rdb.name"},
+]
+description = "User-friendly command-line tool for synchronizing time entries from Toggl Track to Moneybird"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.8"
+dependencies = [
+    "keyring",
+    "requests",
+    "rich",
+    "rich-argparse",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Office/Business :: Financial :: Accounting",
+]
+
+[project.urls]
+"Source" = "https://github.com/rdb/toggl2moneybird"
+"Bug Tracker" = "https://github.com/rdb/toggl2moneybird/issues"
+
+[project.scripts]
+toggl2moneybird = "toggl2moneybird.cli:main"
