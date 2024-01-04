@@ -6,7 +6,10 @@ from . import moneybird as mb
 
 
 def tt_parse_timestamp(str):
-    return datetime.fromisoformat(str.replace('Z', '+00:00'))
+    if str:
+        return datetime.fromisoformat(str.replace('Z', '+00:00'))
+    else:
+        return None
 
 
 class SyncEntry:
@@ -31,6 +34,10 @@ class EntrySync:
 
     def add_tt_entry(self, tt_entry, tt_project):
         # Must be called in chronological order.
+
+        if not tt_entry['stop']:
+            # Skip entries that are still running.
+            return
 
         tt_project_id = tt_entry['project_id']
         if tt_project_id:
