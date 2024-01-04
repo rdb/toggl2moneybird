@@ -261,9 +261,9 @@ def do_mutations(console, args, mb_admin, mutations):
 def cmd_sync(console, args, mb_admin):
     today = date.today()
     if today.month - back_months < 1:
-        start_date = date(today.year, 12 + today.month - back_months, 1)
+        start_date = date(today.year - 1, 12 + today.month - back_months, 1)
     else:
-        start_date = date(today.year - 1, today.month - back_months, 1)
+        start_date = date(today.year, today.month - back_months, 1)
 
     if start_date < earliest_start_date:
         start_date = earliest_start_date
@@ -323,9 +323,9 @@ def cmd_sync(console, args, mb_admin):
 def cmd_invoice(console, args, mb_admin):
     today = date.today()
     if today.month - back_months < 1:
-        start_date = date(today.year, 12 + today.month - back_months, 1)
+        start_date = date(today.year - 1, 12 + today.month - back_months, 1)
     else:
-        start_date = date(today.year - 1, today.month - back_months, 1)
+        start_date = date(today.year, today.month - back_months, 1)
 
     if start_date < earliest_start_date:
         start_date = earliest_start_date
