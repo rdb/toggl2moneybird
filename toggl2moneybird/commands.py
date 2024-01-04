@@ -260,10 +260,17 @@ def do_mutations(console, args, mb_admin, mutations):
 
 def cmd_sync(console, args, mb_admin):
     today = date.today()
-    if today.month - back_months < 1:
-        start_date = date(today.year - 1, 12 + today.month - back_months, 1)
+    if back_months < 3:
+        if today.month - back_months < 1:
+            start_date = date(today.year - 1, 12 + today.month - back_months, 1)
+        else:
+            start_date = date(today.year, today.month - back_months, 1)
     else:
-        start_date = date(today.year, today.month - back_months, 1)
+        # Limit of the Toggl Track API
+        if today.month - 3 < 1:
+            start_date = date(today.year - 1, 12 + today.month - 3, today.day)
+        else:
+            start_date = date(today.year, today.month - 3, today.day)
 
     if start_date < earliest_start_date:
         start_date = earliest_start_date
@@ -327,6 +334,14 @@ def cmd_invoice(console, args, mb_admin):
     else:
         start_date = date(today.year, today.month - back_months, 1)
 
+    # Toggl Track has a limit on the earliest start date
+    if back_months < 3:
+        tt_start_date = start_date
+    elif today.month - 3 < 1:
+        tt_start_date = date(today.year - 1, 12 + today.month - 3, 15)
+    else:
+        tt_start_date = date(today.year, today.month - 3, 15)
+
     if start_date < earliest_start_date:
         start_date = earliest_start_date
 
@@ -339,7 +354,7 @@ def cmd_invoice(console, args, mb_admin):
         entries = mb_admin.get_time_entries(start_date, end_date, progress=progress)
 
     tt = tt_login(console)
-    tt_entries = tt.get_time_entries(start_date, end_date)
+    tt_entries = tt.get_time_entries(tt_start_date, end_date)
     tt_entries.sort(key=lambda e: e['start'])
 
     sync = EntrySync()
@@ -359,6 +374,9 @@ def cmd_invoice(console, args, mb_admin):
         sync.map_projects_by_name(mb_projects)
 
     mutations = sync.get_mutations(mb_admin.get_users()[0])
+
+    # Filter out mutations before tt_start_date, and already invoiced entries
+    mutations = [(mb_entry, diff) for mb_entry, diff in mutations if not mb_entry or (mb_entry.started_at.date() >= tt_start_date and not mb_entry.detail)]
 
     if len(mutations) > 0 and Confirm.ask(f"{len(mutations)} entries are out of sync. Sync first?"):
         if not do_mutations(console, args, mb_admin, mutations):

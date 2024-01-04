@@ -30,6 +30,9 @@ period using the following command:
 
 ## Limitations
 
+The Toggl Track API only allows accessing the last three months worth of data.
+It is highly advised to run the sync at least once every month!
+
 Currently, there is no mapping done between users - all time entries will be
 logged under the same user (you will be asked which one if there are multiple).
 
