@@ -388,6 +388,7 @@ def cmd_invoice(console, args, mb_admin):
     if args.projects:
         entries = entries.filter(lambda entry: entry.project and entry.project.name in args.projects)
 
+    by_cc = defaultdict(lambda: ([], [], mb.TimeEntries()))
     if entries:
         entries.sort()
 
@@ -433,12 +434,21 @@ def cmd_invoice(console, args, mb_admin):
             amount = round(duration / 3600, 1)
             menu.add_row(period, f"{amount:.1f}h", f"{symbol} {total:.2f}", contact.__rich__(), ', '.join(project_strs), value=(period, contact, currency, list(proj_durations.keys())))
 
-        period, contact, currency, projects = menu.choose()
+        for period, contact, currency, projects in menu.choose(multiple=True):
+            period_entries = entries.filter(contact=contact, project=projects,
+                                            func=lambda entry: entry.started_at.isoformat().startswith(period + '-'))
+            cc = (contact, currency)
+            by_cc[cc][0].append(period)
+            by_cc[cc][1].extend(projects)
+            by_cc[cc][2].extend(period_entries)
 
-        entries = entries.filter(contact=contact, project=projects,
-                                 func=lambda entry: entry.started_at.isoformat().startswith(period + '-'))
+        del period, contact, currency, projects
+    else:
+        console.print("No unbilled hours found.")
 
-        console.print(f"Time entries for contact {contact.__rich__()} during [green]{period}[/green] in [yellow bold]{currency}[/yellow bold]")
+    for (contact, currency), (periods, projects, entries) in by_cc.items():
+        period_str = f"[green]{'[/green], [green]'.join(periods)}[/green]"
+        console.print(f"Time entries for contact {contact.__rich__()} during {period_str} in [yellow bold]{currency}[/yellow bold]")
         console.print(entries)
         if not args.yes and not Confirm.ask("Create a draft invoice for these time entries?"):
             return
@@ -473,7 +483,7 @@ def cmd_invoice(console, args, mb_admin):
             'details_attributes': [],
         }
 
-        table = Table(show_edge=False, title=f"Invoice for contact {contact.__rich__()} during [green]{period}[/green] in [yellow bold]{currency}[/yellow bold]")
+        table = Table(show_edge=False, title=f"Invoice for contact {contact.__rich__()} during {period_str} in [yellow bold]{currency}[/yellow bold]")
         table.add_column("", justify="right", style="magenta", no_wrap=True)
         table.add_column("Description")
         table.add_column("Price")
@@ -530,9 +540,6 @@ def cmd_invoice(console, args, mb_admin):
             obj = mb_admin.create_sales_invoice(data)
             console.print(f"Created invoice [bright_black]Draft #{obj['draft_id']}[/bright_black], opening in web browser.")
             webbrowser.open(f"https://moneybird.com/{mb_admin.id}/sales_invoices/{obj['id']}")
-
-    else:
-        console.print("No unbilled hours found.")
 
     invoices = []
     for invoice in mb_admin.get_sales_invoices(state='draft'):

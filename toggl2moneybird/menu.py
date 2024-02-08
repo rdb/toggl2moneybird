@@ -48,7 +48,7 @@ class Menu:
     def add_row(self, *args, value):
         self._rows.append((args, value))
 
-    def choose(self):
+    def choose(self, multiple=False):
         orig_rows = self._rows
         rows = self._rows
 
@@ -62,6 +62,7 @@ class Menu:
         else:
             i = -1 if self.filter else 0
         default_i = i
+        count = 1
 
         with Live(None, console=self.console, auto_refresh=False, transient=True) as live:
             while True:
@@ -77,7 +78,7 @@ class Menu:
 
                 for j, (cells, value) in enumerate(rows):
                     if have_getch:
-                        reverse = (len(rows) == 1 or j == i)
+                        reverse = (len(rows) == 1 or (j >= i and j < i + count))
                         table.add_row(*cells, style='reverse' if reverse else '')
                     else:
                         table.add_row(str(j + 1), *cells)
@@ -109,14 +110,33 @@ class Menu:
                         c = getwch()
                         if c == '[':
                             c = getwch()
+                            if c == '1':
+                                c = getwch()
+                                if c == ';':
+                                    c = getwch()
+                                    if c == '2':
+                                        c = getwch()
+                                        if multiple:
+                                            if c == 'A':
+                                                if i >= 0:
+                                                    i -= 1
+                                                    count += 1
+                                            elif c == 'B':
+                                                count += 1
+                                                if i + count >= len(rows):
+                                                    count = len(rows) - i
+                                            continue
+
                             if c == 'A' or c == 'Z':  # up or back-tab
-                                i -= 1
-                                if i < 0:
-                                    i = len(rows) - 1
+                                if count == 1 or i > 0:
+                                    i -= 1
+                                    if i < 0:
+                                        i = len(rows) - 1
                             elif c == 'B':
-                                i += 1
+                                i += count
                                 if i >= len(rows):
                                     i = 0
+                            count = 1
                         continue
                     elif (c == '\x00' or c == '\xe0') and os.name == 'nt':  # ESC, Windows
                         # We can't detect a genuine a-with-grave-accent here,
@@ -156,7 +176,10 @@ class Menu:
                     try:
                         i = int(q) - 1
                         assert i >= 0 and i < len(rows)
-                        return rows[i][1]
+                        if multiple:
+                            return [rows[i][1]]
+                        else:
+                            return rows[i][1]
                     except Exception:
                         pass
 
@@ -172,13 +195,19 @@ class Menu:
                             rows = orig_rows
                             q = ''
                         elif len(rows) == 1:
-                            return rows[0][1]
+                            if multiple:
+                                return [rows[0][1]]
+                            else:
+                                return rows[0][1]
                 else:
                     rows = orig_rows
 
                 if have_getch and (c == '\n' or c == '\r'):
                     if len(rows) == 1 or (i >= 0 and i < len(rows)):
-                        return rows[i][1]
+                        if multiple:
+                            return [row[1] for row in rows[i:i+count]]
+                        else:
+                            return rows[i][1]
                     #elif len(rows) == 0 or (i < 0 and not q):
                     #    return None
 
