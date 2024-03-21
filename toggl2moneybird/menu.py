@@ -167,18 +167,35 @@ class Menu:
                 else:
                     if self.filter:
                         live.update(Group(self.prompt, table, Text("Enter number of option, or part of name to filter: ")), refresh=True)
+                    elif multiple:
+                        live.update(Group(self.prompt, table, Text("Enter (comma-separated) number(s) of option(s): ")), refresh=True)
                     else:
                         live.update(Group(self.prompt, table, Text("Enter number of option: ")), refresh=True)
 
                     self.console.print(Control.show_cursor(True))
-                    q = input()
+                    q = input().strip()
                     self.console.print(Control.show_cursor(False), Control.move(0, -1))
                     try:
-                        i = int(q) - 1
-                        assert i >= 0 and i < len(rows)
                         if multiple:
-                            return [rows[i][1]]
+                            results = []
+                            items = q.split(',')
+                            for item in items:
+                                if '-' in item:
+                                    first, last = item.split('-', 1)
+                                    first = int(first.strip()) - 1
+                                    last = int(last.strip()) - 1
+                                    assert first >= 0
+                                    assert last > first
+                                    for i in range(first, last + 1):
+                                        results.append(rows[i][1])
+                                else:
+                                    i = int(item.strip()) - 1
+                                    results.append(rows[i][1])
+
+                            return results
                         else:
+                            i = int(q) - 1
+                            assert i >= 0
                             return rows[i][1]
                     except Exception:
                         pass
