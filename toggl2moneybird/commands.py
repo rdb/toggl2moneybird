@@ -446,6 +446,9 @@ def cmd_invoice(console, args, mb_admin):
     else:
         console.print("No unbilled hours found.")
 
+    if len(by_cc) > 1:
+        console.print(f"Multiple contacts or currencies selected, creating {len(by_cc)} invoices.")
+
     for (contact, currency), (periods, projects, entries) in by_cc.items():
         period_str = f"[green]{'[/green], [green]'.join(periods)}[/green]"
         console.print(f"Time entries for contact {contact.__rich__()} during {period_str} in [yellow bold]{currency}[/yellow bold]")
