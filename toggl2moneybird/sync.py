@@ -46,7 +46,7 @@ class EntrySync:
             assert not tt_project
 
         billable = tt_entry['billable']
-        description = tt_entry['description']
+        description = tt_entry['description'] or '(no description)'
 
         date = tt_entry['start'][0:10]
         start = tt_parse_timestamp(tt_entry['start'])
