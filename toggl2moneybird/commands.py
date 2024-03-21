@@ -338,9 +338,9 @@ def cmd_invoice(console, args, mb_admin):
     if back_months < 3:
         tt_start_date = start_date
     elif today.month - 3 < 1:
-        tt_start_date = date(today.year - 1, 12 + today.month - 3, 15)
+        tt_start_date = date(today.year - 1, 12 + today.month - 3, today.day)
     else:
-        tt_start_date = date(today.year, today.month - 3, 15)
+        tt_start_date = date(today.year, today.month - 3, today.day)
 
     if start_date < earliest_start_date:
         start_date = earliest_start_date
