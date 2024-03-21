@@ -304,7 +304,7 @@ def cmd_sync(console, args, mb_admin):
 
     sync.link(mb_entries)
 
-    if sync.has_missing_billable_projects():
+    if sync.has_missing_projects(args.only_billable):
         mb_projects = mb_admin.get_projects()
 
         if args.projects:
@@ -315,7 +315,7 @@ def cmd_sync(console, args, mb_admin):
                 mb_project = mb_admin.create_project(tt_project['name'])
                 sync.map_project(tt_project['id'], mb_project)
 
-    for mb_project in sync.get_billable_projects_without_contacts():
+    for mb_project in sync.get_projects_without_contacts(args.only_billable):
         if args.projects and mb_project.name not in args.projects:
             continue
 
@@ -365,7 +365,7 @@ def cmd_invoice(console, args, mb_admin):
 
     sync.link(entries)
 
-    if sync.has_missing_billable_projects():
+    if sync.has_missing_projects(args.only_billable):
         mb_projects = mb_admin.get_projects()
 
         if args.projects:

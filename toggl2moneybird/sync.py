@@ -132,7 +132,10 @@ class EntrySync:
             if entry.tt_project and entry.tt_project['id'] == tt_project_id:
                 entry.mb_project = mb_project
 
-    def has_missing_billable_projects(self):
+    def has_missing_projects(self, only_billable=False):
+        if not only_billable:
+            return bool(self.__missing_projects)
+
         for proj in self.__missing_projects.values():
             if proj['billable']:
                 return True
@@ -168,11 +171,11 @@ class EntrySync:
     def get_project_contact(self, mb_project):
         return self.__mb_project_contact_map.get(mb_project)
 
-    def get_billable_projects_without_contacts(self):
+    def get_projects_without_contacts(self, only_billable=False):
         for mb_project in self.__project_map.values():
             if mb_project not in self.__mb_project_contact_map:
                 for entry in self.entries:
-                    if entry.mb_project == mb_project and entry.billable:
+                    if entry.mb_project == mb_project and (entry.billable or not only_billable):
                         yield mb_project
                         break
 
