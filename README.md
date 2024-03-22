@@ -23,10 +23,17 @@ automatically making changes to your administration.
 
     toggl2moneybird sync
 
+Only time entries corresponding to a project are synced.  By default, only
+billable items are synced, but you can add the `--unbillable` flag to include
+unbillable items as well.
+
 You can also automatically create a draft invoice for a particular contact and
 period using the following command:
 
     toggl2moneybird invoice
+
+The invoice will not be sent out automatically.  Instead, a browser window will
+open with the draft invoice in Moneybird, allowing you to send it from there.
 
 ## Limitations
 
@@ -42,3 +49,4 @@ an exception.  Simply try again at a later time if you encounter this issue.
 
 If you encounter any problems, please do not hesitate to report them in the
 [issue tracker](https://github.com/rdb/toggl2moneybird/issues).
+Feature requests are also welcome!
