@@ -286,8 +286,13 @@ def cmd_sync(console, args, mb_admin):
     tt_entries = tt.get_time_entries(start_date, end_date)
     tt_entries.sort(key=lambda e: e['start'])
 
+    exclude_tags = frozenset(args.exclude_tags or ())
+
     sync = EntrySync()
     for tt_entry in tt_entries:
+        if exclude_tags.intersection(tt_entry['tags']):
+            continue
+
         tt_project = tt.get_project(tt_entry['project_id'])
         if not args.projects or tt_project['name'] in args.projects:
             sync.add_tt_entry(tt_entry, tt_project)
@@ -360,8 +365,13 @@ def cmd_invoice(console, args, mb_admin):
     tt_entries = tt.get_time_entries(tt_start_date, end_date)
     tt_entries.sort(key=lambda e: e['start'])
 
+    exclude_tags = frozenset(args.exclude_tags or ())
+
     sync = EntrySync()
     for tt_entry in tt_entries:
+        if exclude_tags.intersection(tt_entry['tags']):
+            continue
+
         tt_project = tt.get_project(tt_entry['project_id'])
         if not args.projects or tt_project['name'] in args.projects:
             sync.add_tt_entry(tt_entry, tt_project)
