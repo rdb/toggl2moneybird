@@ -326,6 +326,9 @@ def cmd_sync(console, args, mb_admin):
     mutations = sync.get_mutations(mb_user)
     do_mutations(console, args, mb_admin, mutations)
 
+    if not mutations and args.only_billable and sync.has_missing_projects(False):
+        console.print("To include unbillable projects, add the [bold]--unbillable[/bold] flag.")
+
 
 def cmd_invoice(console, args, mb_admin):
     today = date.today()
