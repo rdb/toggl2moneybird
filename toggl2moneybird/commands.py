@@ -606,8 +606,12 @@ def cmd_invoice(console, args, mb_admin):
                 elif (first_start_date.month - 1) // 3 == (last_end_date.month - 1) // 3:
                     quarter = (first_start_date.month - 1) // 3 + 1
                     period = f'{first_start_date.year} Q{quarter}'
+                elif first_start_date.month == last_end_date.month - 1:
+                    period = f'{first_start_date.year}-{first_start_date.month:0>2}/{last_end_date.month}'
+                else:
+                    period = 'Multiple'
             else:
-                period = ''
+                period = 'Multiple'
 
             project_str = ', '.join([project.__rich__() for project in projects])
             table.add_row(f'Draft #{invoice.draft_id}', period, f"{symbol} {invoice.total_price_excl_tax}", contact.__rich__(), project_str)
