@@ -203,6 +203,12 @@ def mb_entry_data_table(entries_data, mb_admin, **kwargs):
             desc = entry.description
             project_name = entry.project.name if entry.project else ''
 
+        if data and data['billable']:
+            if desc:
+                desc = '💰 ' + desc
+            else:
+                desc = '💰'
+
         if entry and not data:
             table.add_row(date, time[:5], dur_str, project_name, desc, style='strike bright_black')
         else:
