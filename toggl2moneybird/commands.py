@@ -19,20 +19,18 @@ from rich.prompt import Confirm, Prompt
 from rich.progress import Progress
 from rich.live import Live
 from rich.control import Control
-from rich.console import Group
+from rich.console import Group, Console
 
 
 back_months = 6
 earliest_start_date = date(2023, 10, 1)
 
 
+CURRENCY_SYMBOLS = dict(EUR='€', USD='$', GBP='£')
+
+
 def get_currency_symbol(currency):
-    if currency == 'EUR':
-        return '€'
-    elif currency == 'USD':
-        return '$'
-    else:
-        return currency
+    return CURRENCY_SYMBOLS.get(currency, currency)
 
 
 def format_currency(amount, currency=None):
@@ -40,6 +38,49 @@ def format_currency(amount, currency=None):
         return f'{get_currency_symbol(currency)} {amount:,.2f}'
     else:
         return f'{amount:,.2f}'
+
+
+def ask_hourly_rate_for(mb_project, default_currency=None):
+    while True:
+        ret = Prompt.ask(f"Hourly rate for project {mb_project.__rich__()}")
+        ret = ret.strip()
+
+        currency = default_currency
+
+        for code, symbol in CURRENCY_SYMBOLS.items():
+            if ret.startswith(symbol) or ret.endswith(symbol):
+                currency = code
+                ret = ret.strip(symbol)
+                break
+        else:
+            if len(ret) > 4:
+                if ret[0].isalpha() and ret[1].isalpha() and ret[2].isalpha() and not ret[3].isalpha():
+                    currency = ret[:3].upper()
+                    ret = ret[3:].strip()
+                elif ret[-1].isalpha() and ret[-2].isalpha() and ret[-3].isalpha() and not ret[-4].isalpha():
+                    currency = ret[-3:].upper()
+                    ret = ret[:-3].strip()
+
+        if ',' in ret and '.' not in ret:
+            ret = ret.replace(',', '.')
+
+        try:
+            rate = float(ret)
+        except ValueError:
+            Console().print('[red]Please enter a valid currency amount[/red]')
+            continue
+
+        break
+
+    while not currency:
+        currency = Prompt.ask("In which currency? [magenta bold][EUR/USD/GBP/...][/magenta bold]")
+        currency = currency.strip().upper()
+
+        if len(currency) != 3:
+            Console().print('[red]Please enter a valid 3-letter currency code[/red]')
+            currency = None
+
+    return rate, currency
 
 
 def tt_login(console):
@@ -378,12 +419,11 @@ def cmd_invoice(console, args, mb_admin):
 
     sync.link(entries)
 
+    mb_projects = mb_admin.get_projects()
+    if args.projects:
+        mb_projects = [mb_project for mb_project in mb_projects if mb_project.name in args.projects]
+
     if sync.has_missing_projects(args.only_billable):
-        mb_projects = mb_admin.get_projects()
-
-        if args.projects:
-            mb_projects = [mb_project for mb_project in mb_projects if mb_project.name in args.projects]
-
         sync.map_projects_by_name(mb_projects)
 
     mutations = sync.get_mutations(mb_admin.get_users()[0])
@@ -405,25 +445,55 @@ def cmd_invoice(console, args, mb_admin):
     if entries:
         entries.sort()
 
+        mb_projects_by_name = {}
+        for mb_project in mb_projects:
+            mb_projects_by_name[mb_project.name.lower()] = mb_project
+
         rate_by_project = {}
         currency_by_project = {}
         for tt_project in tt.get_projects():
             mb_project = sync.get_project_by_tt_id(tt_project['id'])
-            if mb_project:
-                rate_by_project[mb_project] = tt_project['rate']
-                currency_by_project[mb_project] = tt_project['currency']
+            if not mb_project:
+                mb_project = mb_projects_by_name.get(tt_project['name'].lower())
+                if not mb_project:
+                    continue
 
+            rate = args.rate or tt_project['rate']
+            currency = args.currency or tt_project['currency']
+
+            # Use default hourly rate / currency of workspace
+            if rate is None or currency is None:
+                tt_workspace = tt.get_workspace(tt_project['workspace_id'])
+                rate = rate or tt_workspace['default_hourly_rate']
+                currency = currency or tt_workspace['default_currency']
+
+            rate_by_project[mb_project] = rate
+            currency_by_project[mb_project] = currency
+
+        seen_projects = set()
         unbilled: DefaultDict[tuple, DefaultDict[mb.Project, float]] = \
             defaultdict(lambda: defaultdict(float))
         for entry in entries:
-            if entry.project:
-                if entry.project not in currency_by_project:
-                    console.print("Couldn't find corresponding project in Toggl Track. Do a sync first?")
+            mb_project = entry.project
+            if mb_project:
+                if mb_project not in currency_by_project:
+                    console.print(f"Couldn't find corresponding project for {mb_project.__rich__()} in Toggl Track. Do a sync first?")
                     return
 
+                rate = rate_by_project[mb_project]
+                currency = currency_by_project[mb_project]
+                if rate is None or currency is None:
+                    rate, currency = ask_hourly_rate_for(mb_project)
+                    rate_by_project[mb_project] = rate
+                    currency_by_project[mb_project] = currency
+
                 period = entry.started_at.strftime('%Y-%m')
-                currency = currency_by_project[entry.project]
-                unbilled[(period, entry.contact, currency)][entry.project] += entry.duration
+                unbilled[(period, entry.contact, currency)][mb_project] += entry.duration
+
+                if mb_project not in seen_projects:
+                    symbol = get_currency_symbol(currency)
+                    console.print(f'Charging [yellow bold]{symbol}[/yellow bold] {rate:.2f}/hr for project {mb_project.__rich__()}')
+                    seen_projects.add(mb_project)
 
         menu = Menu(prompt="Choose a contact and period from the list below.", show_edge=False)
         menu.add_column("period", justify="right", style="green", no_wrap=True)

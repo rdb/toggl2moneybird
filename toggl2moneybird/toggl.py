@@ -21,6 +21,7 @@ class TogglTrack:
             'Authorization': 'Basic ' + encoded.decode('ascii'),
         }
         self.__projects = None
+        self.__workspaces = {}
 
     @property
     def fullname(self):
@@ -31,7 +32,7 @@ class TogglTrack:
         return self.__data['api_token']
 
     def _request(self, method, path, data=None):
-        url = f'https://api.track.toggl.com/api/v9/me/{path}'
+        url = f'https://api.track.toggl.com/api/v9/{path}'
 
         r = requests.request(method, url, headers=self.__headers, json=data)
         if r.status_code >= 300:
@@ -45,9 +46,20 @@ class TogglTrack:
 
         return r.json()
 
+    def get_workspace(self, id):
+        if id is None:
+            return None
+
+        if id in self.__workspaces:
+            return self.__workspaces[id]
+
+        workspace = self._request('GET', f'workspaces/{id}')
+        self.__workspaces[id] = workspace
+        return workspace
+
     def __fetch_projects(self):
         self.__projects = {}
-        for project in self._request('GET', 'projects'):
+        for project in self._request('GET', 'me/projects'):
             self.__projects[project['id']] = project
 
     def get_project(self, id):
@@ -68,7 +80,7 @@ class TogglTrack:
         return list(self.__projects.values())
 
     def get_time_entries(self, start_date=None, end_date=None):
-        path = 'time_entries'
+        path = 'me/time_entries'
         if start_date and end_date:
             path += f'?start_date={start_date:%Y-%m-%d}&end_date={end_date:%Y-%m-%d}T23:59:59Z'
 
