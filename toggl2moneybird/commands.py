@@ -166,7 +166,9 @@ def mb_entry_data_table(entries_data, mb_admin, **kwargs):
             desc = data['description']
         elif data:
             desc = data.get('description')
-            if desc is not None and entry.description and desc != entry.description:
+            if desc is None and entry.description:
+                desc = entry.description
+            elif desc is not None and entry.description and desc != entry.description:
                 strike_on = False
                 new_desc = ''
                 for word in ndiff(entry.description.split(' '), desc.split(' ')):
