@@ -28,6 +28,7 @@ def main():
     parser.add_argument('--project', action='append', metavar='"Project"', dest='projects', help="Limit to the given project (may be repeated)")
     parser.add_argument('--exclude-tag', action='append', metavar='"tag"', dest='exclude_tags', help="Exclude entries with the given tag (may be repeated)")
     parser.add_argument('--unbillable', action='store_false', dest='only_billable', help="Include unbillable entries")
+    parser.add_argument('--unbillable-tag', action='store', dest='unbillable_tag', help="Consider all entries billable except those with the given tag")
     parser.add_argument('--rate', action='store', dest='rate', type=float, help="Use the given rate for invoices, overrides rate in Toggl Track")
     parser.add_argument('--currency', action='store', dest='currency', help="Use the given currency for invoices (e.g. EUR), overrides currency in Toggl Track")
     args = parser.parse_args()

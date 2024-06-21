@@ -336,6 +336,8 @@ def cmd_sync(console, args, mb_admin):
 
         tt_project = tt.get_project(tt_entry['project_id'])
         if not args.projects or tt_project['name'] in args.projects:
+            if args.unbillable_tag:
+                tt_entry['billable'] = args.unbillable_tag not in tt_entry['tags']
             sync.add_tt_entry(tt_entry, tt_project)
 
     with Progress(console=console, transient=True) as progress:
@@ -415,6 +417,8 @@ def cmd_invoice(console, args, mb_admin):
 
         tt_project = tt.get_project(tt_entry['project_id'])
         if not args.projects or tt_project['name'] in args.projects:
+            if args.unbillable_tag:
+                tt_entry['billable'] = args.unbillable_tag not in tt_entry['tags']
             sync.add_tt_entry(tt_entry, tt_project)
 
     sync.link(entries)
