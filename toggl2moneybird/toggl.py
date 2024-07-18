@@ -59,7 +59,7 @@ class TogglTrack:
 
     def __fetch_projects(self):
         self.__projects = {}
-        for project in self._request('GET', 'me/projects'):
+        for project in self._request('GET', 'me/projects?include_archived=true'):
             self.__projects[project['id']] = project
 
     def get_project(self, id):
