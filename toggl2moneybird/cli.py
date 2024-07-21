@@ -19,6 +19,8 @@ def main():
     console = Console()
 
     cmd_choices = [name[4:] for name in dir(commands) if name.startswith('cmd_')]
+    cmd_choices.append('login')
+    cmd_choices.append('logout')
     cmd_choices.append('help')
 
     parser = ArgumentParser(prog='toggl2moneybird', description='Synchronizes Toggl Track time entries with a Moneybird administration', formatter_class=RichHelpFormatter)
@@ -38,6 +40,19 @@ def main():
         return
 
     logname = getpass.getuser()
+    if args.command == 'logout':
+        try:
+            commands.tt_logout(console)
+            console.print("Removed [plum3][bold]toggl[/bold]track[/plum3] credentials from keyring.")
+        except:
+            console.print("No [plum3][bold]toggl[/bold]track[/plum3] credentials found in keyring.")
+        try:
+            mb.Credentials.erase_keyring(keyring, logname)
+            console.print("Removed [deep_sky_blue1 bold]moneybird[/deep_sky_blue1 bold] credentials from keyring.")
+        except:
+            console.print("No [deep_sky_blue1 bold]moneybird[/deep_sky_blue1 bold] credentials found in keyring.")
+        return
+
     mb_creds = mb.Credentials.from_keyring(keyring, logname)
     if not mb_creds:
         mb_creds = mb.authenticate()
@@ -51,6 +66,10 @@ def main():
     mb_admin = mb_admins[0]
 
     console.print("Logged into [deep_sky_blue1 bold]moneybird[/deep_sky_blue1 bold] administration", mb_admin)
+
+    if args.command == 'login':
+        commands.tt_login(console)
+        return
 
     cmd_func = getattr(commands, 'cmd_' + args.command)
     return cmd_func(console, args, mb_admin)

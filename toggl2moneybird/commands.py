@@ -122,6 +122,11 @@ def tt_login(console):
     return tt
 
 
+def tt_logout(console):
+    logname = getpass.getuser()
+    keyring.delete_password('name.rdb.toggl2moneybird.toggl-api-token', logname)
+
+
 def mb_entry_data_table(entries_data, mb_admin, **kwargs):
     table = Table(**kwargs)
     table.add_column("date", justify="right", style="green", no_wrap=True)

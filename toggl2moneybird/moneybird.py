@@ -588,6 +588,10 @@ class Credentials:
             data += '|' + self.refresh_token
         keyring.set_password('name.rdb.toggl2moneybird.moneybird-credentials', username, data)
 
+    @staticmethod
+    def erase_keyring(keyring, username):
+        keyring.delete_password('name.rdb.toggl2moneybird.moneybird-credentials', username)
+
 
 def authenticate(refresh_token=None):
     # Spin up a temporary web server to handle the redirect from Moneybird.
