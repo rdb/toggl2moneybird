@@ -54,6 +54,14 @@ case *all* entries (except those specified by `--exclude-tag`) are imported,
 but only the ones without the tags specified by `--unbillable-tag` are marked
 as "Billable" in the moneybird administration.
 
+## Advanced Filters
+
+You can use `--project` with most commands to limit the effect of those
+commands to only the specified projects.
+
+You can use `--exclude-tag "My Tag"` to entirely ignore Toggl Track entries
+with the specified tag.
+
 ## Limitations
 
 The Toggl Track API only allows accessing the last three months worth of data.
