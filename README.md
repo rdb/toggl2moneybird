@@ -24,8 +24,8 @@ automatically making changes to your administration.
     toggl2moneybird sync
 
 Only time entries corresponding to a project are synced.  By default, only
-billable items are synced, but you can add the `--unbillable` flag to include
-unbillable items as well.
+billable items are synced, but you can add the `--include-unbillable` flag to
+include unbillable items as well.
 
 You can also automatically create a draft invoice for a particular contact and
 period using the following command:
@@ -34,6 +34,25 @@ period using the following command:
 
 The invoice will not be sent out automatically.  Instead, a browser window will
 open with the draft invoice in Moneybird, allowing you to send it from there.
+
+## Billable flag
+
+By default, only entries marked "Billable" in Toggl Track are synchronized.
+There are two options to control this behaviour.  The `--include-unbillable`
+flag will cause all entries to be synchronized.  The "Billable" flag is only
+set in moneybird for entries that are marked "Billable" in Toggl Track.
+
+Since the "Billable" tag requires a paid Toggl Track subscription, there is an
+option to use a custom tag instead.  If you use `--unbillable-tag "My Tag"`,
+then all Toggl Track entries will be considered billable, except those with
+the tag "My Tag".  The option may be repeated for every tag that marks an
+unbillable entry.  If you would like to mark all imported entries billable in
+moneybird, simply use this option with a silly tag name that doesn't exist.
+
+The options are independent of each other and may be used together, in which
+case *all* entries (except those specified by `--exclude-tag`) are imported,
+but only the ones without the tags specified by `--unbillable-tag` are marked
+as "Billable" in the moneybird administration.
 
 ## Limitations
 

@@ -351,6 +351,8 @@ def cmd_sync(console, args, mb_admin):
         if not args.projects or tt_project['name'] in args.projects:
             if args.unbillable_tag:
                 tt_entry['billable'] = args.unbillable_tag not in tt_entry['tags']
+            if args.only_billable and not tt_entry['billable']:
+                continue
             sync.add_tt_entry(tt_entry, tt_project)
 
     with Progress(console=console, transient=True) as progress:
@@ -388,7 +390,7 @@ def cmd_sync(console, args, mb_admin):
     do_mutations(console, args, mb_admin, mutations)
 
     if not mutations and args.only_billable and sync.has_missing_projects(False):
-        console.print("To include unbillable projects, add the [bold]--unbillable[/bold] flag.")
+        console.print("To include unbillable entries, add the [bold]--include-unbillable[/bold] flag.")
 
 
 def cmd_invoice(console, args, mb_admin):
@@ -432,6 +434,8 @@ def cmd_invoice(console, args, mb_admin):
         if not args.projects or tt_project['name'] in args.projects:
             if args.unbillable_tag:
                 tt_entry['billable'] = args.unbillable_tag not in tt_entry['tags']
+            if args.only_billable and not tt_entry['billable']:
+                continue
             sync.add_tt_entry(tt_entry, tt_project)
 
     sync.link(entries)

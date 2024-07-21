@@ -29,6 +29,7 @@ class EntrySync:
         self.__entry_map = {}
         self.__project_map: dict[int, mb.Project] = {}
         self.__missing_projects: dict[int, dict] = {}
+        self.__missing_projects_billable = set()
         self.__mb_project_contact_map: dict[mb.Project, mb.Contact] = {}
         self.__mb_redundant_entries = set()
 
@@ -65,6 +66,8 @@ class EntrySync:
                 entry.mb_project = self.__project_map.get(tt_project_id)
                 if not entry.mb_project:
                     self.__missing_projects[tt_project_id] = tt_project
+                    if tt_entry['billable']:
+                        self.__missing_projects_billable.add(tt_project_id)
 
         entry.stop = tt_parse_timestamp(tt_entry['stop'])
 
@@ -101,8 +104,10 @@ class EntrySync:
             tt_project = entry.tt_project
             if mb_project:
                 if tt_project and tt_project['id'] not in self.__project_map:
-                    self.__project_map[tt_project['id']] = entry.mb_project
-                    self.__missing_projects.pop(tt_project['id'], None)
+                    tt_project_id = tt_project['id']
+                    self.__project_map[tt_project_id] = entry.mb_project
+                    self.__missing_projects.pop(tt_project_id, None)
+                    self.__missing_projects_billable.discard(tt_project_id)
 
                 if mb_contact:
                     self.__mb_project_contact_map[mb_project] = mb_contact
@@ -127,19 +132,21 @@ class EntrySync:
         assert mb_project
         self.__project_map[tt_project_id] = mb_project
         self.__missing_projects.pop(tt_project_id, None)
+        self.__missing_projects_billable.discard(tt_project_id)
 
         for entry in self.entries:
             if entry.tt_project and entry.tt_project['id'] == tt_project_id:
                 entry.mb_project = mb_project
 
     def has_missing_projects(self, only_billable=False):
-        if not only_billable:
+        #NB. We used to look at the billable flag on a project, but this
+        # doesn't actually say anything about whether the entries in the
+        # project are billable or not, so I decided to only look at whether
+        # the project has billable entries.  See GitHub issue #4.
+        if only_billable:
+            return bool(self.__missing_projects_billable)
+        else:
             return bool(self.__missing_projects)
-
-        for proj in self.__missing_projects.values():
-            if proj['billable']:
-                return True
-        return False
 
     def map_projects_by_name(self, mb_projects):
         if not self.entries or not self.__missing_projects:
@@ -160,6 +167,7 @@ class EntrySync:
                     entry.mb_project = mb_project
                     self.__project_map[tt_project_id] = mb_project
                     self.__missing_projects.pop(tt_project_id, None)
+                    self.__missing_projects_billable.discard(tt_project_id)
 
         return tuple(self.__missing_projects.values())
 
