@@ -708,3 +708,30 @@ def cmd_invoice(console, args, mb_admin):
             table.add_row(f'Draft #{invoice.draft_id}', period, f"{symbol} {invoice.total_price_excl_tax}", contact.__rich__(), project_str)
 
         console.print(table)
+
+
+def cmd_erase(console, args, mb_admin):
+    with Progress(console=console, transient=True) as progress:
+        mb_entries = mb_admin.get_time_entries(progress=progress)
+
+    if args.projects:
+        mb_entries = mb_entries.filter(lambda mb_entry: mb_entry.project and mb_entry.project.name in args.projects)
+
+    if not mb_entries:
+        console.print("No entries to erase.")
+        return
+
+    console.print(mb_entries)
+
+    if args.yes or Confirm.ask("Erase ALL above entries?"):
+        with Progress(console=console, transient=True) as progress:
+            task_id = progress.add_task("[red]Deleting...", total=len(mb_entries))
+
+            for mb_entry in mb_entries:
+                id = mb_entry.id
+                if args.dry_run:
+                    console.print("Would have deleted", id)
+                    progress.advance(task_id)
+                else:
+                    mb_admin.delete_time_entry(id, progress=progress, task_id=task_id)
+                    console.print("Deleted", id)
