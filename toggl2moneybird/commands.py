@@ -3,7 +3,7 @@ __all__ = ()
 import keyring
 import getpass
 import webbrowser
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from collections import defaultdict
 from difflib import ndiff
 from typing import DefaultDict
@@ -38,6 +38,25 @@ def format_currency(amount, currency=None):
         return f'{get_currency_symbol(currency)} {amount:,.2f}'
     else:
         return f'{amount:,.2f}'
+
+
+def relaxed_date(year, month, day):
+    if day > 28:
+        days_in_month = (relaxed_date(year, month + 1, 1) - timedelta(days=1)).day
+        if day > days_in_month:
+            # Too many days for month, roll over
+            month += 1
+            day -= days_in_month
+
+    while month < 1:
+        month += 12
+        year -= 1
+
+    while month > 12:
+        month -= 12
+        year += 1
+
+    return date(year, month, day)
 
 
 def ask_hourly_rate_for(mb_project, default_currency=None):
@@ -315,24 +334,15 @@ def do_mutations(console, args, mb_admin, mutations):
 def cmd_sync(console, args, mb_admin):
     today = date.today()
     if back_months < 3:
-        if today.month - back_months < 1:
-            start_date = date(today.year - 1, 12 + today.month - back_months, 1)
-        else:
-            start_date = date(today.year, today.month - back_months, 1)
+        start_date = relaxed_date(today.year, today.month - back_months, 1)
     else:
         # Limit of the Toggl Track API
-        if today.month - 3 < 1:
-            start_date = date(today.year - 1, 12 + today.month - 3, today.day)
-        else:
-            start_date = date(today.year, today.month - 3, today.day)
+        start_date = relaxed_date(today.year, today.month - 3, today.day)
 
     if start_date < earliest_start_date:
         start_date = earliest_start_date
 
-    if today.month == 12:
-        end_date = date(today.year + 1, 1, 1)
-    else:
-        end_date = date(today.year, today.month + 1, 1)
+    end_date = relaxed_date(today.year, today.month + 1, 1)
 
     console.print(Text.assemble("Synchronizing time entries from ", (start_date.isoformat(), "bold green"), " to ", (end_date.isoformat(), "bold magenta")))
 
@@ -395,26 +405,18 @@ def cmd_sync(console, args, mb_admin):
 
 def cmd_invoice(console, args, mb_admin):
     today = date.today()
-    if today.month - back_months < 1:
-        start_date = date(today.year - 1, 12 + today.month - back_months, 1)
-    else:
-        start_date = date(today.year, today.month - back_months, 1)
+    start_date = relaxed_date(today.year, today.month - back_months, 1)
 
     # Toggl Track has a limit on the earliest start date
     if back_months < 3:
         tt_start_date = start_date
-    elif today.month - 3 < 1:
-        tt_start_date = date(today.year - 1, 12 + today.month - 3, today.day)
     else:
-        tt_start_date = date(today.year, today.month - 3, today.day)
+        tt_start_date = relaxed_date(today.year, today.month - 3, today.day)
 
     if start_date < earliest_start_date:
         start_date = earliest_start_date
 
-    if today.month == 12:
-        end_date = date(today.year + 1, 1, 1)
-    else:
-        end_date = date(today.year, today.month + 1, 1)
+    end_date = relaxed_date(today.year, today.month + 1, 1)
 
     with Progress(console=console, transient=True) as progress:
         entries = mb_admin.get_time_entries(start_date, end_date, progress=progress)
