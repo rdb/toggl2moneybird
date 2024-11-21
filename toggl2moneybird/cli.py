@@ -10,7 +10,11 @@ import argparse
 from argparse import ArgumentParser
 
 from rich.console import Console
-from rich_argparse import RichHelpFormatter
+
+try:
+    from rich_argparse import RichHelpFormatter
+except ImportError:
+    RichHelpFormatter = argparse.HelpFormatter
 
 from . import moneybird as mb
 from . import commands
