@@ -227,7 +227,7 @@ def mb_entry_data_table(entries_data, mb_admin, **kwargs):
             desc = entry.description
             project_name = entry.project.name if entry.project else ''
 
-        if data and data['billable']:
+        if data and data.get('billable'):
             if desc:
                 desc = '💰 ' + desc
             else:
