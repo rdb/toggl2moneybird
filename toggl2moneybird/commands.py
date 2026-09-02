@@ -249,7 +249,7 @@ def do_mutations(console, args, mb_admin, mutations):
     orig_mutations = mutations
     mutations = []
     for mb_entry, data in orig_mutations:
-        if mb_entry and mb_entry.detail is not None:
+        if mb_entry and getattr(mb_entry, 'detail', None) is not None:
             num_locked += 1
             continue
 

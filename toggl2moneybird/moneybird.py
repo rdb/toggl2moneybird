@@ -95,7 +95,7 @@ class APIObject:
 
     def __getattr__(self, attr):
         if attr not in self.__data:
-            raise AttributeError
+            raise AttributeError(f"API object with id {self.id} has no attribute {attr}")
         return self.__data[attr]
 
     def __hash__(self):
