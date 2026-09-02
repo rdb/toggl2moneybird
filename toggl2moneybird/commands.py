@@ -377,16 +377,17 @@ def cmd_sync(console, args, mb_admin):
 
     sync.link(mb_entries)
 
-    if sync.has_missing_projects(args.only_billable):
-        mb_projects = mb_admin.get_projects()
+    # Always map by name, even if all projects were found via existing
+    # entries, since entries may have been moved to a different project in
+    # Toggl Track since the last sync.
+    mb_projects = mb_admin.get_projects()
+    if args.projects:
+        mb_projects = [mb_project for mb_project in mb_projects if mb_project.name in args.projects]
 
-        if args.projects:
-            mb_projects = [mb_project for mb_project in mb_projects if mb_project.name in args.projects]
-
-        for tt_project in sync.map_projects_by_name(mb_projects):
-            if Confirm.ask(f"Add missing project [bold blue]{tt_project['name']}[/bold blue]?"):
-                mb_project = mb_admin.create_project(tt_project['name'])
-                sync.map_project(tt_project['id'], mb_project)
+    for tt_project in sync.map_projects_by_name(mb_projects):
+        if Confirm.ask(f"Add missing project [bold blue]{tt_project['name']}[/bold blue]?"):
+            mb_project = mb_admin.create_project(tt_project['name'])
+            sync.map_project(tt_project['id'], mb_project)
 
     for mb_project in sync.get_projects_without_contacts(args.only_billable):
         if args.projects and mb_project.name not in args.projects:
@@ -446,8 +447,7 @@ def cmd_invoice(console, args, mb_admin):
     if args.projects:
         mb_projects = [mb_project for mb_project in mb_projects if mb_project.name in args.projects]
 
-    if sync.has_missing_projects(args.only_billable):
-        sync.map_projects_by_name(mb_projects)
+    sync.map_projects_by_name(mb_projects)
 
     mutations = sync.get_mutations(mb_admin.get_users()[0])
 

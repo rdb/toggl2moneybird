@@ -149,8 +149,15 @@ class EntrySync:
             return bool(self.__missing_projects)
 
     def map_projects_by_name(self, mb_projects):
-        if not self.entries or not self.__missing_projects:
-            return
+        """Maps Toggl Track projects to Moneybird projects with the same name.
+
+        A name match takes precedence over a mapping that link() learned from
+        the existing Moneybird entries, so that entries that were moved to a
+        different project in Toggl Track get moved in Moneybird as well.  The
+        learned mapping remains as a fallback for projects that have a
+        different name in Moneybird.
+
+        Returns the Toggl Track projects that could not be mapped."""
 
         # Make a reverse mapping from moneybird project name to ID.
         mb_projects_by_name = {}
